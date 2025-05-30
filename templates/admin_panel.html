@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - ALfaaz Times</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #e63946;
+            --secondary-color: #1d3557;
+            --text-color: #2b2d42;
+            --light-bg: #f8f9fa;
+            --border-color: #e9ecef;
+        }
+
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--light-bg);
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-header {
+            background: var(--secondary-color);
+            color: white;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }
+
+        .admin-title {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .admin-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            color: var(--secondary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #d32f2f;
+        }
+
+        .news-ticker-form textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .category-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .category-item:last-child {
+            border-bottom: none;
+        }
+
+        .category-item input {
+            margin-right: 10px;
+        }
+
+        .social-links-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .admin-nav {
+            background: var(--secondary-color);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .nav-brand {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .logout-btn {
+            background: var(--primary-color);
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .logout-btn:hover {
+            background: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <nav class="admin-nav">
+        <div class="nav-brand">ALfaaz Times Admin</div>
+        <div class="nav-links">
+            <a href="/admin/home-cards" class="nav-link">Home Cards</a>
+            <a href="/admin" class="nav-link">Dashboard</a>
+            <button onclick="logout()" class="nav-link logout-btn">Logout</button>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1 class="admin-title">ALfaaz Times Admin Panel</h1>
+        </div>
+
+        <div id="alert" class="alert"></div>
+
+        <!-- News Ticker Management -->
+        <div class="admin-section">
+            <h2 class="section-title">Breaking News Ticker</h2>
+            <form id="tickerForm" class="news-ticker-form">
+                <div class="form-group">
+                    <label for="tickerContent">Ticker Content (One news item per line)</label>
+                    <textarea id="tickerContent" class="form-control" placeholder="Enter news items, one per line"></textarea>
+                </div>
+                <button type="submit" class="btn">Update Ticker</button>
+            </form>
+        </div>
+
+        <!-- Categories Management -->
+        <div class="admin-section">
+            <h2 class="section-title">News Categories</h2>
+            <form id="categoriesForm">
+                <div class="form-group">
+                    <label>Active Categories</label>
+                    <ul class="category-list" id="categoryList">
+                        <!-- Categories will be loaded here -->
+                    </ul>
+                </div>
+                <div class="form-group">
+                    <label for="newCategory">Add New Category</label>
+                    <input type="text" id="newCategory" class="form-control" placeholder="Enter category name">
+                </div>
+                <button type="submit" class="btn">Update Categories</button>
+            </form>
+        </div>
+
+        <!-- Social Media Links -->
+        <div class="admin-section">
+            <h2 class="section-title">Social Media Links</h2>
+            <form id="socialLinksForm" class="social-links-form">
+                <div class="form-group">
+                    <label for="facebookLink">Facebook URL</label>
+                    <input type="url" id="facebookLink" class="form-control" placeholder="https://facebook.com/...">
+                </div>
+                <div class="form-group">
+                    <label for="twitterLink">Twitter URL</label>
+                    <input type="url" id="twitterLink" class="form-control" placeholder="https://twitter.com/...">
+                </div>
+                <div class="form-group">
+                    <label for="instagramLink">Instagram URL</label>
+                    <input type="url" id="instagramLink" class="form-control" placeholder="https://instagram.com/...">
+                </div>
+                <button type="submit" class="btn">Update Social Links</button>
+            </form>
+        </div>
+
+        <!-- Footer Links Management -->
+        <div class="admin-section">
+            <h2 class="section-title">Footer Links</h2>
+            <form id="footerLinksForm">
+                <div class="form-group">
+                    <label for="aboutLink">About Us Link</label>
+                    <input type="text" id="aboutLink" class="form-control" placeholder="/about">
+                </div>
+                <div class="form-group">
+                    <label for="contactLink">Contact Us Link</label>
+                    <input type="text" id="contactLink" class="form-control" placeholder="/contact">
+                </div>
+                <div class="form-group">
+                    <label for="careersLink">Careers Link</label>
+                    <input type="text" id="careersLink" class="form-control" placeholder="/careers">
+                </div>
+                <button type="submit" class="btn">Update Footer Links</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Function to show alert messages
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 3000);
+        }
+
+        // Load current ticker content
+        async function loadTickerContent() {
+            try {
+                const response = await fetch('/api/admin/ticker');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('tickerContent').value = data.content.join('\n');
+                }
+            } catch (error) {
+                console.error('Error loading ticker content:', error);
+            }
+        }
+
+        // Load categories
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/admin/categories');
+                const data = await response.json();
+                if (data.success) {
+                    const categoryList = document.getElementById('categoryList');
+                    categoryList.innerHTML = data.categories.map(category => `
+                        <li class="category-item">
+                            <input type="checkbox" id="cat_${category.id}" value="${category.id}" ${category.active ? 'checked' : ''}>
+                            <label for="cat_${category.id}">${category.name}</label>
+                        </li>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        // Load social media links
+        async function loadSocialLinks() {
+            try {
+                const response = await fetch('/api/admin/social-links');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('facebookLink').value = data.links.facebook || '';
+                    document.getElementById('twitterLink').value = data.links.twitter || '';
+                    document.getElementById('instagramLink').value = data.links.instagram || '';
+                }
+            } catch (error) {
+                console.error('Error loading social links:', error);
+            }
+        }
+
+        // Load footer links
+        async function loadFooterLinks() {
+            try {
+                const response = await fetch('/api/admin/footer-links');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('aboutLink').value = data.links.about || '';
+                    document.getElementById('contactLink').value = data.links.contact || '';
+                    document.getElementById('careersLink').value = data.links.careers || '';
+                }
+            } catch (error) {
+                console.error('Error loading footer links:', error);
+            }
+        }
+
+        // Form submission handlers
+        document.getElementById('tickerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const content = document.getElementById('tickerContent').value.split('\n').filter(line => line.trim());
+            try {
+                const response = await fetch('/api/admin/ticker', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Ticker content updated successfully!', 'success');
+                }
+            } catch (error) {
+                showAlert('Error updating ticker content', 'error');
+            }
+        });
+
+        document.getElementById('categoriesForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const categories = Array.from(document.querySelectorAll('#categoryList input[type="checkbox"]'))
+                .map(checkbox => ({
+                    id: checkbox.value,
+                    active: checkbox.checked
+                }));
+            const newCategory = document.getElementById('newCategory').value.trim();
+            
+            try {
+                const response = await fetch('/api/admin/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categories, newCategory })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Categories updated successfully!', 'success');
+                    loadCategories();
+                    document.getElementById('newCategory').value = '';
+                }
+            } catch (error) {
+                showAlert('Error updating categories', 'error');
+            }
+        });
+
+        document.getElementById('socialLinksForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const links = {
+                facebook: document.getElementById('facebookLink').value,
+                twitter: document.getElementById('twitterLink').value,
+                instagram: document.getElementById('instagramLink').value
+            };
+            
+            try {
+                const response = await fetch('/api/admin/social-links', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ links })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Social links updated successfully!', 'success');
+                }
+            } catch (error) {
+                showAlert('Error updating social links', 'error');
+            }
+        });
+
+        document.getElementById('footerLinksForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const links = {
+                about: document.getElementById('aboutLink').value,
+                contact: document.getElementById('contactLink').value,
+                careers: document.getElementById('careersLink').value
+            };
+            
+            try {
+                const response = await fetch('/api/admin/footer-links', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ links })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Footer links updated successfully!', 'success');
+                }
+            } catch (error) {
+                showAlert('Error updating footer links', 'error');
+            }
+        });
+
+        // Load all data when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTickerContent();
+            loadCategories();
+            loadSocialLinks();
+            loadFooterLinks();
+        });
+
+        async function logout() {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                if (response.ok) {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+        }
+    </script>
+</body>
+</html> 
