@@ -195,8 +195,9 @@
     <nav class="admin-nav">
         <div class="nav-brand">ALfaaz Times Admin</div>
         <div class="nav-links">
-            <a href="/admin/home-cards" class="nav-link">Home Cards</a>
             <a href="/admin" class="nav-link">Dashboard</a>
+            <a href="/admin/home-cards" class="nav-link">Home Cards</a>
+            <a href="#latest-news" class="nav-link">Latest News</a>
             <button onclick="logout()" class="nav-link logout-btn">Logout</button>
         </div>
     </nav>
@@ -256,6 +257,46 @@
                 </div>
                 <button type="submit" class="btn">Update Social Links</button>
             </form>
+        </div>
+
+        <!-- Latest News Upload Section -->
+        <div class="admin-section" id="latest-news">
+            <h2 class="section-title">Latest News Upload</h2>
+            <form id="newsUploadForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="newsTitle">Title</label>
+                    <input type="text" id="newsTitle" name="title" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="newsDescription">Description</label>
+                    <textarea id="newsDescription" name="description" class="form-control" rows="3" style="resize:vertical;" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="newsCategory">Category</label>
+                    <select id="newsCategory" name="category" class="form-control" required>
+                        <option value="">Select Category</option>
+                        <option value="business">Business</option>
+                        <option value="politics">Politics</option>
+                        <option value="sports">Sports</option>
+                        <option value="technology">Technology</option>
+                        <option value="entertainment">Entertainment</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Media (Image or Video)</label>
+                    <input type="file" id="newsMedia" name="media" class="form-control" accept="image/*,video/*">
+                    <small>Only one file per post. Image or video. For video, you can also provide a YouTube link below.</small>
+                </div>
+                <div class="form-group">
+                    <label for="youtubeLink">YouTube Video Link (optional)</label>
+                    <input type="url" id="youtubeLink" name="youtubeLink" class="form-control" placeholder="https://youtube.com/...">
+                </div>
+                <div class="form-group" id="mediaPreview" style="display:none;"></div>
+                <button type="submit" class="btn">Upload News</button>
+            </form>
+            <hr>
+            <h3>Uploaded News</h3>
+            <div id="uploadedNewsList"></div>
         </div>
 
         <!-- Footer Links Management -->
@@ -467,6 +508,195 @@
                 console.error('Logout failed:', error);
             }
         }
+
+        // --- Latest News Upload Section ---
+        // Auto-expand description textarea
+        const newsDescription = document.getElementById('newsDescription');
+        newsDescription.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Media preview logic
+        const newsMedia = document.getElementById('newsMedia');
+        const youtubeLink = document.getElementById('youtubeLink');
+        const mediaPreview = document.getElementById('mediaPreview');
+
+        function resetMediaPreview() {
+            mediaPreview.innerHTML = '';
+            mediaPreview.style.display = 'none';
+        }
+
+        function showImagePreview(file) {
+            const img = document.createElement('img');
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '300px';
+            img.style.display = 'block';
+            img.style.margin = '10px 0';
+            img.src = URL.createObjectURL(file);
+            mediaPreview.innerHTML = '';
+            mediaPreview.appendChild(img);
+            mediaPreview.style.display = 'block';
+        }
+
+        function showVideoPreview(file) {
+            const video = document.createElement('video');
+            video.controls = true;
+            video.style.maxWidth = '100%';
+            video.style.maxHeight = '300px';
+            video.style.display = 'block';
+            video.style.margin = '10px 0';
+            video.src = URL.createObjectURL(file);
+            video.preload = 'metadata';
+            video.onloadedmetadata = function() {
+                video.currentTime = 1; // Set to 1 second to show a preview frame
+            };
+            mediaPreview.innerHTML = '';
+            mediaPreview.appendChild(video);
+            mediaPreview.style.display = 'block';
+        }
+
+        function showYouTubePreview(url) {
+            // Extract YouTube video ID
+            const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+            if (match) {
+                const videoId = match[1];
+                const thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                mediaPreview.innerHTML = `<div style="position:relative;display:inline-block;"><img src="${thumbUrl}" style="max-width:100%;max-height:300px;display:block;"><span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:48px;color:white;text-shadow:0 0 10px black;"><i class='fas fa-play-circle'></i></span></div>`;
+                mediaPreview.style.display = 'block';
+            } else {
+                resetMediaPreview();
+            }
+        }
+
+        newsMedia.addEventListener('change', function() {
+            resetMediaPreview();
+            youtubeLink.value = '';
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                if (file.type.startsWith('image/')) {
+                    showImagePreview(file);
+                } else if (file.type.startsWith('video/')) {
+                    showVideoPreview(file);
+                }
+            }
+        });
+
+        youtubeLink.addEventListener('input', function() {
+            resetMediaPreview();
+            newsMedia.value = '';
+            if (this.value.trim()) {
+                showYouTubePreview(this.value.trim());
+            }
+        });
+
+        // Form validation: only one media per post
+        document.getElementById('newsUploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const title = document.getElementById('newsTitle').value.trim();
+            const description = document.getElementById('newsDescription').value.trim();
+            const category = document.getElementById('newsCategory').value;
+            const mediaFile = newsMedia.files[0];
+            const youtubeUrl = youtubeLink.value.trim();
+
+            if (!title || !description || !category) {
+                showAlert('Please fill all required fields.', 'error');
+                return;
+            }
+            if (!mediaFile) {
+                showAlert('Please upload an image or video file.', 'error');
+                return;
+            }
+            if (mediaFile && youtubeUrl) {
+                showAlert('Please provide only one media: either upload a file or provide a YouTube link.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('category', category);
+            formData.append('media', mediaFile);
+            if (youtubeUrl) formData.append('youtubeLink', youtubeUrl);
+
+            try {
+                const response = await fetch('/api/admin/news', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('News uploaded successfully!', 'success');
+                    this.reset();
+                    resetMediaPreview();
+                    loadUploadedNews();
+                } else {
+                    showAlert(data.message || 'Failed to upload news.', 'error');
+                }
+            } catch (error) {
+                showAlert('Error uploading news.', 'error');
+            }
+        });
+
+        // Load and display uploaded news
+        async function loadUploadedNews() {
+            try {
+                const response = await fetch('/api/admin/news');
+                const data = await response.json();
+                if (data.success) {
+                    const list = document.getElementById('uploadedNewsList');
+                    if (data.news.length === 0) {
+                        list.innerHTML = '<p>No news uploaded yet.</p>';
+                        return;
+                    }
+                    list.innerHTML = data.news.map(news => `
+                        <div class="admin-news-card" style="border:1px solid #eee;padding:10px;margin-bottom:10px;border-radius:6px;display:flex;align-items:center;gap:15px;">
+                            <div style="flex-shrink:0;width:120px;height:80px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f8f8f8;">
+                                ${news.mediaType === 'image' ? `<img src="${news.mediaUrl}" style="max-width:100%;max-height:80px;">` :
+                                news.mediaType === 'video' ? `<video src="${news.mediaUrl}" style="max-width:100%;max-height:80px;" controls></video>` :
+                                news.mediaType === 'youtube' ? `<img src="https://img.youtube.com/vi/${news.youtubeId}/hqdefault.jpg" style="max-width:100%;max-height:80px;"><span style='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:white;text-shadow:0 0 10px black;'><i class='fas fa-play-circle'></i></span>` : ''}
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-weight:bold;">${news.title}</div>
+                                <div style="font-size:0.95em;color:#555;">${news.category}</div>
+                                <div style="font-size:0.9em;color:#888;">${news.description.slice(0, 60)}${news.description.length > 60 ? '...' : ''}</div>
+                            </div>
+                            <div style="display:flex;flex-direction:column;gap:5px;">
+                                <button class="btn" onclick="editNews('${news._id}')">Edit</button>
+                                <button class="btn" style="background:#dc3545;" onclick="deleteNews('${news._id}')">Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                document.getElementById('uploadedNewsList').innerHTML = '<p>Error loading news.</p>';
+            }
+        }
+
+        // Edit and Delete handlers (to be implemented)
+        window.editNews = function(id) {
+            showAlert('Edit functionality coming soon!', 'error');
+        }
+        window.deleteNews = async function(id) {
+            if (!confirm('Are you sure you want to delete this news post?')) return;
+            try {
+                const response = await fetch(`/api/admin/news/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('News deleted successfully!', 'success');
+                    loadUploadedNews();
+                } else {
+                    showAlert(data.message || 'Failed to delete news.', 'error');
+                }
+            } catch (error) {
+                showAlert('Error deleting news.', 'error');
+            }
+        }
+
+        // Load news on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUploadedNews();
+        });
     </script>
 </body>
 </html> 
