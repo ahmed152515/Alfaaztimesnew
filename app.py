@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for, flash
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for, flash, send_from_directory
 from flask_cors import CORS
 from pymongo import MongoClient
 import os
@@ -9,6 +9,7 @@ import json
 from utils.mongodb import verify_user, update_user_password
 from functools import wraps
 from bson.objectid import ObjectId
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 CORS(app)
@@ -104,20 +105,34 @@ def about():
     return render_template('about.html')
 
 @app.route('/user')
+@login_required
 def user_panel():
-    # Get all necessary data for the user panel
-    ticker = db_mongo.tickers.find_one() or {'content': []}
-    categories = list(db_mongo.categories.find({'active': True}))
-    social_links = db_mongo.social_links.find_one() or {'facebook': '', 'twitter': '', 'instagram': ''}
-    footer_links = db_mongo.footer_links.find_one() or {'about': '/about', 'contact': '/contact', 'careers': '/careers'}
-    articles = list(db_mongo.articles.find().sort('created_at', -1))
-    
-    return render_template('user_panel.html',
-                         ticker=ticker,
-                         categories=categories,
-                         social_links=social_links,
-                         footer_links=footer_links,
-                         articles=articles)
+    return render_template('user_panel.html')
+
+@app.route('/politics')
+@login_required
+def politics():
+    return render_template('politics.html')
+
+@app.route('/business')
+@login_required
+def business():
+    return render_template('business.html')
+
+@app.route('/technology')
+@login_required
+def technology():
+    return render_template('technology.html')
+
+@app.route('/sports')
+@login_required
+def sports():
+    return render_template('sports.html')
+
+@app.route('/entertainment')
+@login_required
+def entertainment():
+    return render_template('entertainment.html')
 
 @app.route('/admin')
 @login_required
@@ -469,6 +484,83 @@ def upload_home_card_image():
         return jsonify({'success': False, 'message': f'Cloudinary upload error: {str(e)}'}), 500
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error uploading image: {str(e)}'}), 500
+
+@app.route('/api/admin/news', methods=['POST'])
+@login_required
+def admin_upload_news():
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        title = request.form.get('title')
+        description = request.form.get('description')
+        category = request.form.get('category')
+        youtube_link = request.form.get('youtubeLink')
+        file = request.files.get('media')
+        media_type = None
+        media_url = None
+        youtube_id = None
+        if file:
+            filename = secure_filename(file.filename)
+            if file.mimetype.startswith('image/'):
+                upload_result = cloudinary.uploader.upload(file, folder='alfaaz_news/images')
+                media_type = 'image'
+                media_url = upload_result['secure_url']
+            elif file.mimetype.startswith('video/'):
+                upload_result = cloudinary.uploader.upload(file, resource_type='video', folder='alfaaz_news/videos')
+                media_type = 'video'
+                media_url = upload_result['secure_url']
+            else:
+                return jsonify({'success': False, 'message': 'Unsupported file type'}), 400
+        elif youtube_link:
+            # Extract YouTube video ID
+            import re
+            match = re.search(r'(?:youtu\.be/|youtube\.com/(?:embed/|v/|watch\?v=|watch\?.+&v=))([\w-]{11})', youtube_link)
+            if not match:
+                return jsonify({'success': False, 'message': 'Invalid YouTube link'}), 400
+            youtube_id = match.group(1)
+            media_type = 'youtube'
+            media_url = youtube_link
+        else:
+            return jsonify({'success': False, 'message': 'No media provided'}), 400
+        article = {
+            'title': title,
+            'description': description,
+            'category': category,
+            'mediaType': media_type,
+            'mediaUrl': media_url,
+            'youtubeId': youtube_id,
+            'created_at': datetime.utcnow()
+        }
+        db_mongo.articles.insert_one(article)
+        return jsonify({'success': True, 'message': 'News uploaded successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/admin/news', methods=['GET'])
+@login_required
+def admin_list_news():
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    news = list(db_mongo.articles.find().sort('created_at', -1))
+    for n in news:
+        n['_id'] = str(n['_id'])
+        if 'created_at' in n:
+            n['created_at'] = n['created_at'].strftime('%Y-%m-%d %H:%M')
+    return jsonify({'success': True, 'news': news})
+
+@app.route('/api/admin/news/<news_id>', methods=['DELETE'])
+@login_required
+def admin_delete_news(news_id):
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        result = db_mongo.articles.delete_one({'_id': ObjectId(news_id)})
+        if result.deleted_count == 1:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'message': 'News not found'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
     # Use a different port and disable reloader for stability
